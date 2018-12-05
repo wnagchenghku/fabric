@@ -626,8 +626,12 @@ func (p *Impl) ExecuteTransaction(transaction *pb.Transaction) (response *pb.Res
 	if p.isValidator {
 		response = p.sendTransactionsToLocalEngine(transaction)
 	} else {
-		peerAddresses := p.discHelper.GetRandomNodes(1)
-		response = p.SendTransactionsToPeer(peerAddresses[0], transaction)
+		nodes := p.discHelper.GetAllNodes()
+		for _, node := range nodes {
+			response = p.SendTransactionsToPeer(node, transaction)	
+		}
+		// peerAddresses := p.discHelper.GetRandomNodes(1)
+		// response = p.SendTransactionsToPeer(peerAddresses[0], transaction)
 	}
 	return response
 }

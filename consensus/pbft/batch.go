@@ -19,6 +19,8 @@ package pbft
 import (
 	"fmt"
 	"time"
+	"strings"
+	"strconv"
 
 	"github.com/hyperledger/fabric/consensus"
 	"github.com/hyperledger/fabric/consensus/util/events"
@@ -48,6 +50,8 @@ type obcBatch struct {
 	idleChan     chan struct{}      // Idle channel, to be removed
 
 	reqStore *requestStore // Holds the outstanding and pending requests
+
+	op.bitmapStore = make(map[int]*Request)
 
 	deduplicator *deduplicator
 
@@ -136,7 +140,7 @@ func (op *obcBatch) Close() {
 
 func (op *obcBatch) submitToLeader(req *Request) events.Event {
 	// Broadcast the request to the network, in case we're in the wrong view
-	op.broadcastMsg(&BatchMessage{Payload: &BatchMessage_Request{Request: req}})
+	// op.broadcastMsg(&BatchMessage{Payload: &BatchMessage_Request{Request: req}})
 	op.logAddTxFromRequest(req)
 	op.reqStore.storeOutstanding(req)
 	op.startTimerIfOutstandingRequests()
@@ -195,19 +199,35 @@ func (op *obcBatch) verify(senderID uint64, signature []byte, message []byte) er
 // execute an opaque request which corresponds to an OBC Transaction
 func (op *obcBatch) execute(seqNo uint64, reqBatch *RequestBatch) {
 	var txs []*pb.Transaction
-	for _, req := range reqBatch.GetBatch() {
+
+	for _, bit := range strings.Split(reqBatch.Bitmap, ",") {
 		tx := &pb.Transaction{}
+		i,_ := strconv.Atoi(bit)
+		req := op.bitmapStore[i]
 		if err := proto.Unmarshal(req.Payload, tx); err != nil {
 			logger.Warningf("Batch replica %d could not unmarshal transaction %s", op.pbft.id, err)
 			continue
 		}
-		logger.Debugf("Batch replica %d executing request with transaction %s from outstandingReqs, seqNo=%d", op.pbft.id, tx.Txid, seqNo)
 		if outstanding, pending := op.reqStore.remove(req); !outstanding || !pending {
 			logger.Debugf("Batch replica %d missing transaction %s outstanding=%v, pending=%v", op.pbft.id, tx.Txid, outstanding, pending)
 		}
 		txs = append(txs, tx)
 		op.deduplicator.Execute(req)
 	}
+
+	// for _, req := range reqBatch.GetBatch() {
+	// 	tx := &pb.Transaction{}
+	// 	if err := proto.Unmarshal(req.Payload, tx); err != nil {
+	// 		logger.Warningf("Batch replica %d could not unmarshal transaction %s", op.pbft.id, err)
+	// 		continue
+	// 	}
+	// 	logger.Debugf("Batch replica %d executing request with transaction %s from outstandingReqs, seqNo=%d", op.pbft.id, tx.Txid, seqNo)
+	// 	if outstanding, pending := op.reqStore.remove(req); !outstanding || !pending {
+	// 		logger.Debugf("Batch replica %d missing transaction %s outstanding=%v, pending=%v", op.pbft.id, tx.Txid, outstanding, pending)
+	// 	}
+	// 	txs = append(txs, tx)
+	// 	op.deduplicator.Execute(req)
+	// }
 	meta, _ := proto.Marshal(&Metadata{seqNo})
 	logger.Debugf("Batch replica %d received exec for seqNo %d containing %d transactions", op.pbft.id, seqNo, len(txs))
 	op.stack.Execute(meta, txs) // This executes in the background, we will receive an executedEvent once it completes
@@ -242,7 +262,19 @@ func (op *obcBatch) sendBatch() events.Event {
 		return nil
 	}
 
-	reqBatch := &RequestBatch{Batch: op.batchStore}
+	// reqBatch := &RequestBatch{Batch: op.batchStore}
+	bitmap := ""
+	for index, req := range op.batchStore {
+		if index != 0 {
+			bitmap += ","
+		}
+		tx := &pb.Transaction{}
+		if err := proto.Unmarshal(req.Payload, tx); err != nil {	
+		}
+		bitmap += strconv.Itoa(tx.Seqnum)
+	}
+	reqBatch := &RequestBatch{Batch: nil, Bitmap: bitmap}
+
 	op.batchStore = nil
 	logger.Infof("Creating batch with %d requests", len(reqBatch.Batch))
 	return reqBatch
@@ -324,6 +356,7 @@ func (op *obcBatch) logAddTxFromRequest(req *Request) {
 			logger.Errorf("Replica %d was sent a transaction which did not unmarshal: %s", op.pbft.id, err)
 		} else {
 			logger.Debugf("Replica %d adding request from %d with transaction %s into outstandingReqs", op.pbft.id, req.ReplicaId, tx.Txid)
+			op.bitmapStore[tx.Seqnum] = req
 		}
 	}
 }
