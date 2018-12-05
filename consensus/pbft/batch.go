@@ -51,7 +51,7 @@ type obcBatch struct {
 
 	reqStore *requestStore // Holds the outstanding and pending requests
 
-	op.bitmapStore = make(map[int]*Request)
+	bitmapStore map[int]*Request
 
 	deduplicator *deduplicator
 
@@ -123,6 +123,8 @@ func newObcBatch(id uint64, config *viper.Viper, stack consensus.Stack) *obcBatc
 	op.batchTimer = etf.CreateTimer()
 
 	op.reqStore = newRequestStore()
+
+	op.bitmapStore = make(map[int]*Request)
 
 	op.deduplicator = newDeduplicator()
 
