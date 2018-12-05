@@ -146,7 +146,8 @@ func (*Devops) getChaincodeBytes(context context.Context, spec *pb.ChaincodeSpec
 }
 
 func (d *Devops) Increment() int {
-	return ++d.seqnum
+	d.seqnum++
+	return d.seqnum
 } 
 
 // Deploy deploys the supplied chaincode image to the validators through a transaction
