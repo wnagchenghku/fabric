@@ -19,8 +19,6 @@ package pbft
 import (
 	"fmt"
 	"time"
-	"strings"
-	"strconv"
 
 	"github.com/hyperledger/fabric/consensus"
 	"github.com/hyperledger/fabric/consensus/util/events"
@@ -200,7 +198,7 @@ func (op *obcBatch) verify(senderID uint64, signature []byte, message []byte) er
 
 // execute an opaque request which corresponds to an OBC Transaction
 func (op *obcBatch) execute(seqNo uint64, reqBatch *RequestBatch) {
-	// var txs []*pb.Transaction
+	var txs []*pb.Transaction
 
 	for _, bit := range reqBatch.Bitmap {
 		tx := &pb.Transaction{}
