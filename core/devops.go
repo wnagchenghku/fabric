@@ -261,7 +261,7 @@ func (d *Devops) invokeOrQuery(ctx context.Context, chaincodeInvocationSpec *pb.
 	}
 	transaction.Seqnum = d.Increment()
 	transaction.PrivateFor = ""
-	tx.Reps = []int{1, 2, 3}
+	transaction.Reps = []int{1, 2, 3}
 
 	if devopsLogger.IsEnabledFor(logging.DEBUG) {
 		devopsLogger.Debugf("Sending invocation transaction (%s) to validator", transaction.Txid)
