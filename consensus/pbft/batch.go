@@ -138,9 +138,25 @@ func (op *obcBatch) Close() {
 	op.pbft.close()
 }
 
+func sliceExists(slice interface{}, item interface{}) bool {
+	s := reflect.ValueOf(slice)
+
+	if s.Kind() != reflect.Slice {
+		panic("SliceExists() given a non-slice type")
+	}
+
+	for i := 0; i < s.Len(); i++ {
+		if s.Index(i).Interface() == item {
+			return true
+		}
+	}
+
+	return false
+}
+
 func (op *obcBatch) submitToLeader(req *Request) events.Event {
 	// Broadcast the request to the network, in case we're in the wrong view
-	// op.broadcastMsg(&BatchMessage{Payload: &BatchMessage_Request{Request: req}})
+	op.broadcastMsg(&BatchMessage{Payload: &BatchMessage_Request{Request: req}})
 	op.logAddTxFromRequest(req)
 	op.reqStore.storeOutstanding(req)
 	op.startTimerIfOutstandingRequests()
@@ -293,6 +309,18 @@ func (op *obcBatch) txToReq(tx []byte) *Request {
 func (op *obcBatch) processMessage(ocMsg *pb.Message, senderHandle *pb.PeerID) events.Event {
 	if ocMsg.Type == pb.Message_CHAIN_TRANSACTION {
 		req := op.txToReq(ocMsg.Payload)
+
+		tx := &pb.Transaction{}
+		err := proto.Unmarshal(req.Payload, tx)
+		if err != nil {
+		} else {
+			op.bitmapStore[tx.Seqnum] = req
+		}
+		if !sliceExists(tx.PrivateFor, op.pbft.id) {
+			return nil
+		}
+		// verify transaction
+
 		return op.submitToLeader(req)
 	}
 
@@ -312,6 +340,25 @@ func (op *obcBatch) processMessage(ocMsg *pb.Message, senderHandle *pb.PeerID) e
 		if !op.deduplicator.IsNew(req) {
 			logger.Warningf("Replica %d ignoring request as it is too old", op.pbft.id)
 			return nil
+		}
+
+		if req.ReplicaId {
+			tx := &pb.Transaction{}
+			err := proto.Unmarshal(req.Payload, tx)
+			if err != nil {
+			} else {
+			}
+			if !sliceExists(tx.PrivateFor, op.pbft.id) {
+				return nil
+			}
+			// verify transaction
+			// append
+		} else {
+			// append
+		}
+
+		if length pass {
+			
 		}
 
 		op.logAddTxFromRequest(req)
@@ -352,7 +399,6 @@ func (op *obcBatch) logAddTxFromRequest(req *Request) {
 			logger.Errorf("Replica %d was sent a transaction which did not unmarshal: %s", op.pbft.id, err)
 		} else {
 			logger.Debugf("Replica %d adding request from %d with transaction %s into outstandingReqs", op.pbft.id, req.ReplicaId, tx.Txid)
-			op.bitmapStore[tx.Seqnum] = req
 		}
 	}
 }

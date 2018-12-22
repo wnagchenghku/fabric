@@ -385,6 +385,7 @@ type Request struct {
 	Payload   []byte                     `protobuf:"bytes,2,opt,name=payload,proto3" json:"payload,omitempty"`
 	ReplicaId uint64                     `protobuf:"varint,3,opt,name=replica_id,json=replicaId" json:"replica_id,omitempty"`
 	Signature []byte                     `protobuf:"bytes,4,opt,name=signature,proto3" json:"signature,omitempty"`
+	Prepare   int32                      `protobuf:"varint,5,opt,name=prepare,json=prepare" json:"prepare,omitempty"`
 }
 
 func (m *Request) Reset()                    { *m = Request{} }
