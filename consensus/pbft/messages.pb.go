@@ -576,7 +576,7 @@ func (*FetchRequestBatch) Descriptor() ([]byte, []int) { return fileDescriptor0,
 
 type RequestBatch struct {
 	Batch []*Request `protobuf:"bytes,1,rep,name=batch" json:"batch,omitempty"`
-	Bitmap string    `protobuf:"bytes,2,opt,name=bitmap" json:"bitmap,omitempty"`
+	Bitmap []uint64  `protobuf:"varint,2,rep,packed,name=bitmap,proto3" json:"bitmap,omitempty"`
 }
 
 func (m *RequestBatch) Reset()                    { *m = RequestBatch{} }

@@ -63,6 +63,7 @@ type Devops struct {
 	isSecurityEnabled bool
 	bindingMap        *bindingMap
 	seqnum            uint64
+	mux               sync.Mutex
 }
 
 func (b *bindingMap) getKeyFromBinding(binding []byte) string {
@@ -146,7 +147,9 @@ func (*Devops) getChaincodeBytes(context context.Context, spec *pb.ChaincodeSpec
 }
 
 func (d *Devops) Increment() uint64 {
+	d.mux.Lock()
 	d.seqnum++
+	d.mux.Unlock()
 	return d.seqnum
 } 
 

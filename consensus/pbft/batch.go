@@ -51,7 +51,7 @@ type obcBatch struct {
 
 	reqStore *requestStore // Holds the outstanding and pending requests
 
-	bitmapStore map[int]*Request
+	bitmapStore map[uint64]*Request
 
 	deduplicator *deduplicator
 
@@ -124,7 +124,7 @@ func newObcBatch(id uint64, config *viper.Viper, stack consensus.Stack) *obcBatc
 
 	op.reqStore = newRequestStore()
 
-	op.bitmapStore = make(map[int]*Request)
+	op.bitmapStore = make(map[uint64]*Request)
 
 	op.deduplicator = newDeduplicator()
 
@@ -202,19 +202,18 @@ func (op *obcBatch) verify(senderID uint64, signature []byte, message []byte) er
 func (op *obcBatch) execute(seqNo uint64, reqBatch *RequestBatch) {
 	// var txs []*pb.Transaction
 
-	for _, bit := range strings.Split(reqBatch.Bitmap, ",") {
+	for _, bit := range reqBatch.Bitmap {
 		tx := &pb.Transaction{}
-		i,_ := strconv.Atoi(bit)
-		req := op.bitmapStore[i]
+		req := op.bitmapStore[bit]
 		if err := proto.Unmarshal(req.Payload, tx); err != nil {
 			logger.Warningf("Batch replica %d could not unmarshal transaction %s", op.pbft.id, err)
 			continue
 		}
-/*		if outstanding, pending := op.reqStore.remove(req); !outstanding || !pending {
+		if outstanding, pending := op.reqStore.remove(req); !outstanding || !pending {
 			logger.Debugf("Batch replica %d missing transaction %s outstanding=%v, pending=%v", op.pbft.id, tx.Txid, outstanding, pending)
 		}
 		txs = append(txs, tx)
-		op.deduplicator.Execute(req)*/
+		op.deduplicator.Execute(req)
 	}
 
 	// for _, req := range reqBatch.GetBatch() {
@@ -230,9 +229,9 @@ func (op *obcBatch) execute(seqNo uint64, reqBatch *RequestBatch) {
 	// 	txs = append(txs, tx)
 	// 	op.deduplicator.Execute(req)
 	// }
-	/*meta, _ := proto.Marshal(&Metadata{seqNo})
+	meta, _ := proto.Marshal(&Metadata{seqNo})
 	logger.Debugf("Batch replica %d received exec for seqNo %d containing %d transactions", op.pbft.id, seqNo, len(txs))
-	op.stack.Execute(meta, txs) // This executes in the background, we will receive an executedEvent once it completes*/
+	op.stack.Execute(meta, txs) // This executes in the background, we will receive an executedEvent once it completes
 }
 
 // =============================================================================
@@ -265,15 +264,12 @@ func (op *obcBatch) sendBatch() events.Event {
 	}
 
 	// reqBatch := &RequestBatch{Batch: op.batchStore}
-	bitmap := ""
-	for index, req := range op.batchStore {
-		if index != 0 {
-			bitmap += ","
-		}
+	var bitmap []uint64
+	for _, req := range op.batchStore {
 		tx := &pb.Transaction{}
 		if err := proto.Unmarshal(req.Payload, tx); err != nil {	
 		}
-		bitmap += strconv.Itoa(int(tx.Seqnum))
+		bitmap = append(bitmap, tx.Seqnum)
 	}
 	reqBatch := &RequestBatch{Batch: nil, Bitmap: bitmap}
 
@@ -358,7 +354,7 @@ func (op *obcBatch) logAddTxFromRequest(req *Request) {
 			logger.Errorf("Replica %d was sent a transaction which did not unmarshal: %s", op.pbft.id, err)
 		} else {
 			logger.Debugf("Replica %d adding request from %d with transaction %s into outstandingReqs", op.pbft.id, req.ReplicaId, tx.Txid)
-			op.bitmapStore[int(tx.Seqnum)] = req
+			op.bitmapStore[tx.Seqnum] = req
 		}
 	}
 }
