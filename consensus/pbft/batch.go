@@ -142,20 +142,13 @@ func (op *obcBatch) Close() {
 	op.pbft.close()
 }
 
-func sliceExists(slice interface{}, item interface{}) bool {
-	s := reflect.ValueOf(slice)
-
-	if s.Kind() != reflect.Slice {
-		panic("SliceExists() given a non-slice type")
-	}
-
-	for i := 0; i < s.Len(); i++ {
-		if s.Index(i).Interface() == item {
-			return true
-		}
-	}
-
-	return false
+func contains(slice []uint64, item uint64) bool {
+    for _, i := range slice {
+        if i == item {
+            return true
+        }
+    }
+    return false
 }
 
 func (op *obcBatch) submitToLeader(req *Request) events.Event {
@@ -228,7 +221,7 @@ func (op *obcBatch) execute(seqNo uint64, reqBatch *RequestBatch) {
 			continue
 		}
 		
-		if !sliceExists(tx.PrivateFor, op.pbft.id) {
+		if !contains(tx.PrivateFor, op.pbft.id) {
 			continue
 		}
 
@@ -335,7 +328,7 @@ func (op *obcBatch) processMessage(ocMsg *pb.Message, senderHandle *pb.PeerID) e
 		} else {
 			op.sequencerLog[tx.Seqnum] = req
 		}
-		if !sliceExists(tx.PrivateFor, op.pbft.id) {
+		if !contains(tx.PrivateFor, op.pbft.id) {
 			return nil
 		}
 		// verify transaction
