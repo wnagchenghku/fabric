@@ -185,6 +185,7 @@ type Transaction struct {
 	Signature                      []byte                     `protobuf:"bytes,12,opt,name=signature,proto3" json:"signature,omitempty"`
 	Seqnum                         int                        `protobuf:"varint,13,opt,name=seqnum" json:"seqnum,omitempty"`
 	PrivateFor                     string                     `protobuf:"bytes,14,opt,name=privateFor" json:"privateFor,omitempty"`
+	Reps                           []int                      `protobuf:"varint,15,opt,name=reps,proto3" json:"reps,omitempty"`
 }
 
 func (m *Transaction) Reset()                    { *m = Transaction{} }

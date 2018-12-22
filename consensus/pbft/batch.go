@@ -210,11 +210,11 @@ func (op *obcBatch) execute(seqNo uint64, reqBatch *RequestBatch) {
 			logger.Warningf("Batch replica %d could not unmarshal transaction %s", op.pbft.id, err)
 			continue
 		}
-		if outstanding, pending := op.reqStore.remove(req); !outstanding || !pending {
+/*		if outstanding, pending := op.reqStore.remove(req); !outstanding || !pending {
 			logger.Debugf("Batch replica %d missing transaction %s outstanding=%v, pending=%v", op.pbft.id, tx.Txid, outstanding, pending)
 		}
 		txs = append(txs, tx)
-		op.deduplicator.Execute(req)
+		op.deduplicator.Execute(req)*/
 	}
 
 	// for _, req := range reqBatch.GetBatch() {
@@ -230,9 +230,9 @@ func (op *obcBatch) execute(seqNo uint64, reqBatch *RequestBatch) {
 	// 	txs = append(txs, tx)
 	// 	op.deduplicator.Execute(req)
 	// }
-	meta, _ := proto.Marshal(&Metadata{seqNo})
+	/*meta, _ := proto.Marshal(&Metadata{seqNo})
 	logger.Debugf("Batch replica %d received exec for seqNo %d containing %d transactions", op.pbft.id, seqNo, len(txs))
-	op.stack.Execute(meta, txs) // This executes in the background, we will receive an executedEvent once it completes
+	op.stack.Execute(meta, txs) // This executes in the background, we will receive an executedEvent once it completes*/
 }
 
 // =============================================================================
