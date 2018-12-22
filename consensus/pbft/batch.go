@@ -49,7 +49,9 @@ type obcBatch struct {
 
 	reqStore *requestStore // Holds the outstanding and pending requests
 
-	bitmapStore map[uint64]*Request
+	sequencerLog map[uint64]*Request
+
+	phaseCommitLog map[uint64][]*Request
 
 	deduplicator *deduplicator
 
@@ -122,7 +124,9 @@ func newObcBatch(id uint64, config *viper.Viper, stack consensus.Stack) *obcBatc
 
 	op.reqStore = newRequestStore()
 
-	op.bitmapStore = make(map[uint64]*Request)
+	op.sequencerLog = make(map[uint64]*Request)
+
+	op.phaseCommitLog = make(map[uint64][]*Request)
 
 	op.deduplicator = newDeduplicator()
 
@@ -218,11 +222,16 @@ func (op *obcBatch) execute(seqNo uint64, reqBatch *RequestBatch) {
 
 	for _, bit := range reqBatch.Bitmap {
 		tx := &pb.Transaction{}
-		req := op.bitmapStore[bit]
+		req := op.sequencerLog[bit]
 		if err := proto.Unmarshal(req.Payload, tx); err != nil {
 			logger.Warningf("Batch replica %d could not unmarshal transaction %s", op.pbft.id, err)
 			continue
 		}
+		
+		if !sliceExists(tx.PrivateFor, op.pbft.id) {
+			continue
+		}
+
 		if outstanding, pending := op.reqStore.remove(req); !outstanding || !pending {
 			logger.Debugf("Batch replica %d missing transaction %s outstanding=%v, pending=%v", op.pbft.id, tx.Txid, outstanding, pending)
 		}
@@ -254,6 +263,16 @@ func (op *obcBatch) execute(seqNo uint64, reqBatch *RequestBatch) {
 
 func (op *obcBatch) leaderProcReq(req *Request) events.Event {
 	// XXX check req sig
+
+	tx := &pb.Transaction{}
+	err := proto.Unmarshal(req.Payload, tx)
+	if err != nil {
+	} else {
+	}
+	if len(op.phaseCommitLog[tx.Seqnum]) < len(tx.PrivateFor) {
+		return nil
+	}
+
 	digest := hash(req)
 	logger.Debugf("Batch primary %d queueing new request %s", op.pbft.id, digest)
 	op.batchStore = append(op.batchStore, req)
@@ -314,7 +333,7 @@ func (op *obcBatch) processMessage(ocMsg *pb.Message, senderHandle *pb.PeerID) e
 		err := proto.Unmarshal(req.Payload, tx)
 		if err != nil {
 		} else {
-			op.bitmapStore[tx.Seqnum] = req
+			op.sequencerLog[tx.Seqnum] = req
 		}
 		if !sliceExists(tx.PrivateFor, op.pbft.id) {
 			return nil
@@ -342,24 +361,12 @@ func (op *obcBatch) processMessage(ocMsg *pb.Message, senderHandle *pb.PeerID) e
 			return nil
 		}
 
-		if req.ReplicaId {
-			tx := &pb.Transaction{}
-			err := proto.Unmarshal(req.Payload, tx)
-			if err != nil {
-			} else {
-			}
-			if !sliceExists(tx.PrivateFor, op.pbft.id) {
-				return nil
-			}
-			// verify transaction
-			// append
+		tx := &pb.Transaction{}
+		err := proto.Unmarshal(req.Payload, tx)
+		if err != nil {
 		} else {
-			// append
 		}
-
-		if length pass {
-			
-		}
+		op.phaseCommitLog[tx.Seqnum] = append(op.phaseCommitLog[tx.Seqnum], req)
 
 		op.logAddTxFromRequest(req)
 		op.reqStore.storeOutstanding(req)

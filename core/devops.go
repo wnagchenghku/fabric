@@ -201,7 +201,7 @@ func (d *Devops) Deploy(ctx context.Context, spec *pb.ChaincodeSpec) (*pb.Chainc
 		}
 	}
 	tx.Seqnum = d.Increment()
-	tx.PrivateFor = []uint64{1, 2, 3}
+	tx.PrivateFor = []uint64{1, 3}
 
 	if devopsLogger.IsEnabledFor(logging.DEBUG) {
 		devopsLogger.Debugf("Sending deploy transaction (%s) to validator", tx.Txid)
@@ -262,7 +262,7 @@ func (d *Devops) invokeOrQuery(ctx context.Context, chaincodeInvocationSpec *pb.
 		return nil, err
 	}
 	transaction.Seqnum = d.Increment()
-	transaction.PrivateFor = []uint64{1, 2, 3}
+	transaction.PrivateFor = []uint64{1, 3}
 
 	if devopsLogger.IsEnabledFor(logging.DEBUG) {
 		devopsLogger.Debugf("Sending invocation transaction (%s) to validator", transaction.Txid)
