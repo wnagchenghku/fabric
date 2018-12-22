@@ -262,6 +262,7 @@ func (op *obcBatch) leaderProcReq(req *Request) events.Event {
 	if err != nil {
 	} else {
 	}
+	op.phaseCommitLog[tx.Seqnum] = append(op.phaseCommitLog[tx.Seqnum], req)
 	if len(op.phaseCommitLog[tx.Seqnum]) < len(tx.PrivateFor) {
 		return nil
 	}
@@ -353,13 +354,6 @@ func (op *obcBatch) processMessage(ocMsg *pb.Message, senderHandle *pb.PeerID) e
 			logger.Warningf("Replica %d ignoring request as it is too old", op.pbft.id)
 			return nil
 		}
-
-		tx := &pb.Transaction{}
-		err := proto.Unmarshal(req.Payload, tx)
-		if err != nil {
-		} else {
-		}
-		op.phaseCommitLog[tx.Seqnum] = append(op.phaseCommitLog[tx.Seqnum], req)
 
 		op.logAddTxFromRequest(req)
 		op.reqStore.storeOutstanding(req)
