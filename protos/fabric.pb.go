@@ -183,9 +183,8 @@ type Transaction struct {
 	ToValidators                   []byte                     `protobuf:"bytes,10,opt,name=toValidators,proto3" json:"toValidators,omitempty"`
 	Cert                           []byte                     `protobuf:"bytes,11,opt,name=cert,proto3" json:"cert,omitempty"`
 	Signature                      []byte                     `protobuf:"bytes,12,opt,name=signature,proto3" json:"signature,omitempty"`
-	Seqnum                         int                        `protobuf:"varint,13,opt,name=seqnum" json:"seqnum,omitempty"`
-	PrivateFor                     string                     `protobuf:"bytes,14,opt,name=privateFor" json:"privateFor,omitempty"`
-	Reps                           []int                      `protobuf:"varint,15,opt,name=reps,proto3" json:"reps,omitempty"`
+	Seqnum                         uint64                     `protobuf:"varint,13,opt,name=seqnum" json:"seqnum,omitempty"`
+	PrivateFor                     []uint64                   `protobuf:"varint,14,rep,packed,name=privateFor,proto3" json:"reps,omitempty"`
 }
 
 func (m *Transaction) Reset()                    { *m = Transaction{} }

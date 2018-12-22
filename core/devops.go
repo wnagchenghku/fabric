@@ -62,7 +62,7 @@ type Devops struct {
 	coord             peer.MessageHandlerCoordinator
 	isSecurityEnabled bool
 	bindingMap        *bindingMap
-	seqnum            int
+	seqnum            uint64
 }
 
 func (b *bindingMap) getKeyFromBinding(binding []byte) string {
@@ -145,7 +145,7 @@ func (*Devops) getChaincodeBytes(context context.Context, spec *pb.ChaincodeSpec
 	return chaincodeDeploymentSpec, nil
 }
 
-func (d *Devops) Increment() int {
+func (d *Devops) Increment() uint64 {
 	d.seqnum++
 	return d.seqnum
 } 
@@ -198,8 +198,7 @@ func (d *Devops) Deploy(ctx context.Context, spec *pb.ChaincodeSpec) (*pb.Chainc
 		}
 	}
 	tx.Seqnum = d.Increment()
-	tx.PrivateFor = ""
-	tx.Reps = []int{1, 2, 3}
+	tx.PrivateFor = []uint64{1, 2, 3}
 
 	if devopsLogger.IsEnabledFor(logging.DEBUG) {
 		devopsLogger.Debugf("Sending deploy transaction (%s) to validator", tx.Txid)
@@ -260,8 +259,7 @@ func (d *Devops) invokeOrQuery(ctx context.Context, chaincodeInvocationSpec *pb.
 		return nil, err
 	}
 	transaction.Seqnum = d.Increment()
-	transaction.PrivateFor = ""
-	transaction.Reps = []int{1, 2, 3}
+	transaction.PrivateFor = []uint64{1, 2, 3}
 
 	if devopsLogger.IsEnabledFor(logging.DEBUG) {
 		devopsLogger.Debugf("Sending invocation transaction (%s) to validator", transaction.Txid)

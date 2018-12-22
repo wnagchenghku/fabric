@@ -273,7 +273,7 @@ func (op *obcBatch) sendBatch() events.Event {
 		tx := &pb.Transaction{}
 		if err := proto.Unmarshal(req.Payload, tx); err != nil {	
 		}
-		bitmap += strconv.Itoa(tx.Seqnum)
+		bitmap += strconv.Itoa(int(tx.Seqnum))
 	}
 	reqBatch := &RequestBatch{Batch: nil, Bitmap: bitmap}
 
@@ -358,7 +358,7 @@ func (op *obcBatch) logAddTxFromRequest(req *Request) {
 			logger.Errorf("Replica %d was sent a transaction which did not unmarshal: %s", op.pbft.id, err)
 		} else {
 			logger.Debugf("Replica %d adding request from %d with transaction %s into outstandingReqs", op.pbft.id, req.ReplicaId, tx.Txid)
-			op.bitmapStore[tx.Seqnum] = req
+			op.bitmapStore[int(tx.Seqnum)] = req
 		}
 	}
 }
