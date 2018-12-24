@@ -24,6 +24,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"math/rand"
 
 	"golang.org/x/net/context"
 
@@ -645,9 +646,10 @@ func inSlice(element uint64, slice []uint64) bool {
 func (p *Impl) GetRandomNumbers(n int) []uint64 {
 	var pick uint64
 	randomNumbers := make([]uint64, n)
+	max := uint64(len(p.discHelper.GetAllNodes()))
 	for i := 0; i < n; i++ {
 		for {
-			pick = p.random.Intn(len(p.discHelper.GetAllNodes()))]
+			pick = p.random.Uint64() % max
 			if !inSlice(pick, randomNumbers) {
 				break
 			}
@@ -666,7 +668,7 @@ func (p *Impl) ExecuteTransaction(transaction *pb.Transaction) (response *pb.Res
 		if transaction.Type == pb.Transaction_CHAINCODE_DEPLOY {
 			transaction.PrivateFor = p.GetRandomNumbers(len(p.discHelper.GetAllNodes()))
 		} else {
-			transaction.PrivateFor = p.GetRandomNumbers(p.random.Intn(len(p.discHelper.GetAllNodes() - 1)) + 1)
+			transaction.PrivateFor = p.GetRandomNumbers(p.random.Intn(len(p.discHelper.GetAllNodes()) - 1) + 1)
 		}
 
 		nodes := p.discHelper.GetAllNodes()
