@@ -142,13 +142,13 @@ func (op *obcBatch) Close() {
 	op.pbft.close()
 }
 
-func sliceContains(slice []uint64, item uint64) bool {
-    for _, i := range slice {
-        if i == item {
-            return true
-        }
-    }
-    return false
+func inSlice(element uint64, slice []uint64) bool {
+	for _, val := range slice {
+		if val == element {
+			return true
+		}
+	}
+	return false
 }
 
 func (op *obcBatch) submitToLeader(req *Request) events.Event {
@@ -221,7 +221,7 @@ func (op *obcBatch) execute(seqNo uint64, reqBatch *RequestBatch) {
 			continue
 		}
 		
-		if !sliceContains(tx.PrivateFor, op.pbft.id) {
+		if !inSlice(op.pbft.id, tx.PrivateFor) {
 			continue
 		}
 
@@ -329,7 +329,7 @@ func (op *obcBatch) processMessage(ocMsg *pb.Message, senderHandle *pb.PeerID) e
 		} else {
 			op.sequencerLog[tx.Seqnum] = req
 		}
-		if !sliceContains(tx.PrivateFor, op.pbft.id) {
+		if !inSlice(op.pbft.id, tx.PrivateFor) {
 			return nil
 		}
 		// verify transaction

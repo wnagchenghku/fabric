@@ -193,6 +193,10 @@ type Impl struct {
 	reconnectOnce  sync.Once
 	discHelper     discovery.Discovery
 	discPersist    bool
+
+	seqnum         uint64
+	mux            sync.Mutex
+	random         *rand.Rand
 }
 
 // TransactionProccesor responsible for processing of Transactions
@@ -235,6 +239,7 @@ func NewPeerWithHandler(secHelperFunc func() crypto.Peer, handlerFact HandlerFac
 	peer.ledgerWrapper = &ledgerWrapper{ledger: ledgerPtr}
 
 	peer.chatWithSomePeers(peerNodes)
+	peer.random = rand.New(rand.NewSource(time.Now().Unix()))
 	return peer, nil
 }
 
@@ -621,11 +626,49 @@ func (p *Impl) handleChat(ctx context.Context, stream ChatStream, initiatedStrea
 	}
 }
 
+func (p *Impl) Increment() uint64 {
+	p.mux.Lock()
+	p.seqnum++
+	p.mux.Unlock()
+	return p.seqnum
+}
+
+func inSlice(element uint64, slice []uint64) bool {
+	for _, val := range slice {
+		if val == element {
+			return true
+		}
+	}
+	return false
+}
+
+func (p *Impl) GetRandomNumbers(n int) []uint64 {
+	var pick uint64
+	randomNumbers := make([]uint64, n)
+	for i := 0; i < n; i++ {
+		for {
+			pick = p.random.Intn(len(p.discHelper.GetAllNodes()))]
+			if !inSlice(pick, randomNumbers) {
+				break
+			}
+		}
+		randomNumbers[i] = pick
+	}
+	return randomNumbers
+}
+
 //ExecuteTransaction executes transactions decides to do execute in dev or prod mode
 func (p *Impl) ExecuteTransaction(transaction *pb.Transaction) (response *pb.Response) {
 	if p.isValidator {
 		response = p.sendTransactionsToLocalEngine(transaction)
 	} else {
+		transaction.Seqnum = p.Increment()
+		if transaction.Type == pb.Transaction_CHAINCODE_DEPLOY {
+			transaction.PrivateFor = p.GetRandomNumbers(len(p.discHelper.GetAllNodes()))
+		} else {
+			transaction.PrivateFor = p.GetRandomNumbers(p.random.Intn(len(p.discHelper.GetAllNodes() - 1)) + 1)
+		}
+
 		nodes := p.discHelper.GetAllNodes()
 		for _, node := range nodes {
 			response = p.SendTransactionsToPeer(node, transaction)	

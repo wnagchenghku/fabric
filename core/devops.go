@@ -47,7 +47,6 @@ func NewDevopsServer(coord peer.MessageHandlerCoordinator) *Devops {
 	d.coord = coord
 	d.isSecurityEnabled = viper.GetBool("security.enabled")
 	d.bindingMap = &bindingMap{m: make(map[string]crypto.TransactionHandler)}
-	d.seqnum = 0
 	return d
 }
 
@@ -62,8 +61,6 @@ type Devops struct {
 	coord             peer.MessageHandlerCoordinator
 	isSecurityEnabled bool
 	bindingMap        *bindingMap
-	seqnum            uint64
-	mux               sync.Mutex
 }
 
 func (b *bindingMap) getKeyFromBinding(binding []byte) string {
@@ -146,13 +143,6 @@ func (*Devops) getChaincodeBytes(context context.Context, spec *pb.ChaincodeSpec
 	return chaincodeDeploymentSpec, nil
 }
 
-func (d *Devops) Increment() uint64 {
-	d.mux.Lock()
-	d.seqnum++
-	d.mux.Unlock()
-	return d.seqnum
-} 
-
 // Deploy deploys the supplied chaincode image to the validators through a transaction
 func (d *Devops) Deploy(ctx context.Context, spec *pb.ChaincodeSpec) (*pb.ChaincodeDeploymentSpec, error) {
 	// get the deployment spec
@@ -200,8 +190,6 @@ func (d *Devops) Deploy(ctx context.Context, spec *pb.ChaincodeSpec) (*pb.Chainc
 			return nil, fmt.Errorf("Error deploying chaincode: %s ", err)
 		}
 	}
-	tx.Seqnum = d.Increment()
-	tx.PrivateFor = []uint64{1, 3}
 
 	if devopsLogger.IsEnabledFor(logging.DEBUG) {
 		devopsLogger.Debugf("Sending deploy transaction (%s) to validator", tx.Txid)
@@ -261,8 +249,6 @@ func (d *Devops) invokeOrQuery(ctx context.Context, chaincodeInvocationSpec *pb.
 	if err != nil {
 		return nil, err
 	}
-	transaction.Seqnum = d.Increment()
-	transaction.PrivateFor = []uint64{1, 3}
 
 	if devopsLogger.IsEnabledFor(logging.DEBUG) {
 		devopsLogger.Debugf("Sending invocation transaction (%s) to validator", transaction.Txid)
