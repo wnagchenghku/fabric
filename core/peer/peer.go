@@ -24,6 +24,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"math"
 	"math/rand"
 
 	"golang.org/x/net/context"
@@ -647,6 +648,9 @@ func (p *Impl) GetRandomNumbers(n int) []uint64 {
 	var pick uint64
 	randomNumbers := make([]uint64, n)
 	max := uint64(len(p.discHelper.GetAllNodes()))
+	for i := 0; i < n; i++ {
+		randomNumbers[i] = math.MaxUint64
+	}
 	for i := 0; i < n; i++ {
 		for {
 			pick = p.random.Uint64() % max
