@@ -92,6 +92,7 @@ func init() {
 
 	format := logging.MustStringFormatter(
 		"%{color}%{time:15:04:05.000} [%{module}] %{shortfunc} -> %{level:.4s} %{id:03x}%{color:reset} %{message}",
+		// StampMicro 15:04:05.000000
 	)
 
 	backend := logging.NewLogBackend(os.Stderr, "", 0)
