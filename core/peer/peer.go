@@ -197,6 +197,7 @@ type Impl struct {
 	discPersist    bool
 
 	seqnum         uint64
+	connections    map[string]*peerClient
 	mux            sync.Mutex
 	random         *rand.Rand
 }
@@ -242,6 +243,7 @@ func NewPeerWithHandler(secHelperFunc func() crypto.Peer, handlerFact HandlerFac
 
 	peer.chatWithSomePeers(peerNodes)
 	peer.random = rand.New(rand.NewSource(time.Now().Unix()))
+	peer.connections = make(map[string]*peerClient)
 	return peer, nil
 }
 
@@ -492,12 +494,20 @@ func (p *Impl) Unicast(msg *pb.Message, receiverHandle *pb.PeerID) error {
 
 // SendTransactionsToPeer forwards transactions to the specified peer address.
 func (p *Impl) SendTransactionsToPeer(peerAddress string, transaction *pb.Transaction) (response *pb.Response) {
-	conn, err := NewPeerClientConnectionWithAddress(peerAddress)
-	if err != nil {
-		return &pb.Response{Status: pb.Response_FAILURE, Msg: []byte(fmt.Sprintf("Error creating client to peer address=%s:  %s", peerAddress, err))}
+	// conn, err := NewPeerClientConnectionWithAddress(peerAddress)
+	// if err != nil {
+	// 	return &pb.Response{Status: pb.Response_FAILURE, Msg: []byte(fmt.Sprintf("Error creating client to peer address=%s:  %s", peerAddress, err))}
+	// }
+	// defer conn.Close()
+	// serverClient := pb.NewPeerClient(conn)
+	serverClient, ok = p.connections[peerAddress]
+	if !ok {
+		conn, err := NewPeerClientConnectionWithAddress(peerAddress)
+		if err != nil {
+		}
+		serverClient = pb.NewPeerClient(conn)
+		p.connections[peerAddress] = serverClient
 	}
-	defer conn.Close()
-	serverClient := pb.NewPeerClient(conn)
 	peerLogger.Debugf("Sending TX to Peer: %s", peerAddress)
 	response, err = serverClient.ProcessTransaction(context.Background(), transaction)
 	if err != nil {
