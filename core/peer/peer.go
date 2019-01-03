@@ -500,14 +500,15 @@ func (p *Impl) SendTransactionsToPeer(peerAddress string, transaction *pb.Transa
 	// }
 	// defer conn.Close()
 	// serverClient := pb.NewPeerClient(conn)
-	conn, ok = p.connections[peerAddress]
+	var err error
+	conn, ok := p.connections[peerAddress]
 	if !ok {
-		conn, err := NewPeerClientConnectionWithAddress(peerAddress)
+		conn, err = NewPeerClientConnectionWithAddress(peerAddress)
 		if err != nil {
 		}
 		p.connections[peerAddress] = conn
 	}
-	serverClient = pb.NewPeerClient(conn)
+	serverClient := pb.NewPeerClient(conn)
 	peerLogger.Debugf("Sending TX to Peer: %s", peerAddress)
 	response, err = serverClient.ProcessTransaction(context.Background(), transaction)
 	if err != nil {
