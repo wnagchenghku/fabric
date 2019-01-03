@@ -215,7 +215,11 @@ func (op *obcBatch) execute(seqNo uint64, reqBatch *RequestBatch) {
 
 	for _, bit := range reqBatch.Bitmap {
 		tx := &pb.Transaction{}
-		req := op.sequencerLog[bit]
+		req, ok := op.sequencerLog[bit]
+		if !ok {
+			logger.Debugf("Batch replica %d missing transaction %d", op.pbft.id, bit)
+			continue
+		}
 		if err := proto.Unmarshal(req.Payload, tx); err != nil {
 			logger.Warningf("Batch replica %d could not unmarshal transaction %s", op.pbft.id, err)
 			continue
