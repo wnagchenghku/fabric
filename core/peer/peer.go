@@ -197,7 +197,7 @@ type Impl struct {
 	discPersist    bool
 
 	seqnum         uint64
-	connections    map[string]*peerClient
+	connections    map[string]*grpc.ClientConn
 	mux            sync.Mutex
 	random         *rand.Rand
 }
@@ -243,7 +243,7 @@ func NewPeerWithHandler(secHelperFunc func() crypto.Peer, handlerFact HandlerFac
 
 	peer.chatWithSomePeers(peerNodes)
 	peer.random = rand.New(rand.NewSource(time.Now().Unix()))
-	peer.connections = make(map[string]*peerClient)
+	peer.connections = make(map[string]*grpc.ClientConn)
 	return peer, nil
 }
 
@@ -500,14 +500,14 @@ func (p *Impl) SendTransactionsToPeer(peerAddress string, transaction *pb.Transa
 	// }
 	// defer conn.Close()
 	// serverClient := pb.NewPeerClient(conn)
-	serverClient, ok = p.connections[peerAddress]
+	conn, ok = p.connections[peerAddress]
 	if !ok {
 		conn, err := NewPeerClientConnectionWithAddress(peerAddress)
 		if err != nil {
 		}
-		serverClient = pb.NewPeerClient(conn)
-		p.connections[peerAddress] = serverClient
+		p.connections[peerAddress] = conn
 	}
+	serverClient = pb.NewPeerClient(conn)
 	peerLogger.Debugf("Sending TX to Peer: %s", peerAddress)
 	response, err = serverClient.ProcessTransaction(context.Background(), transaction)
 	if err != nil {
